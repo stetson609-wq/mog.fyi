@@ -3,45 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>⚡ Aesthetic Analyzer | OmniFace 2.0 – Canthal Tilt & Symmetry</title>
+    <title>MediaPipe Face Mesh • Aimbot Precision Tracker</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
-            background: radial-gradient(circle at 10% 20%, #0a0f1a, #020408);
+            background: #0a0f1e;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-            padding: 20px;
+            font-family: 'Segoe UI', 'Courier New', monospace;
         }
-
-        .dashboard {
-            max-width: 1300px;
-            width: 100%;
-            background: rgba(10, 20, 30, 0.6);
-            backdrop-filter: blur(16px);
-            border-radius: 2.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-            transition: all 0.2s;
-        }
-
-        .camera-area {
+        .container {
             position: relative;
-            border-radius: 2rem;
+            border-radius: 24px;
             overflow: hidden;
-            background: #000;
-            aspect-ratio: 4 / 3;
-            width: 100%;
-            box-shadow: 0 20px 35px -10px black;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,255,255,0.2);
         }
-
         video, canvas {
             position: absolute;
             top: 0;
@@ -49,617 +31,346 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 1.8rem;
+            display: block;
         }
-
-        video {
-            transform: scaleX(-1);
-            filter: brightness(1.02);
-        }
-
         canvas {
-            transform: scaleX(-1);
             pointer-events: none;
         }
-
-        .results-panel {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.2rem;
-        }
-
-        .rating-card {
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(12px);
-            border-radius: 2rem;
-            padding: 1.2rem 1.8rem;
-            flex: 2;
-            min-width: 240px;
-            border: 1px solid rgba(255,215,150,0.3);
-        }
-
-        .flaws-card {
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(12px);
-            border-radius: 2rem;
-            padding: 1.2rem 1.5rem;
-            flex: 3;
-            border: 1px solid rgba(255,200,120,0.25);
-        }
-
-        .big-score {
-            display: flex;
-            align-items: baseline;
-            gap: 5px;
-        }
-        .score-num {
-            font-size: 4.2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #FFE6B0, #FFAA55, #FF7E5A);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            letter-spacing: 2px;
-        }
-        .score-denom {
-            font-size: 1.5rem;
-            font-weight: 500;
-            color: #bbccdd;
-        }
-        .verdict {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-top: 0.5rem;
-            border-left: 4px solid #ffaa66;
-            padding-left: 0.8rem;
-        }
-        .metrics-break {
-            margin-top: 0.8rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem;
-            font-size: 0.75rem;
-            font-family: monospace;
-        }
-        .metric-badge {
-            background: rgba(255,220,150,0.15);
-            padding: 0.2rem 0.8rem;
-            border-radius: 2rem;
-            color: #ffecb3;
-        }
-        .flaws-header {
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            margin-bottom: 0.7rem;
-            color: #ffdd99;
-        }
-        .flaw-list {
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-        }
-        .flaw {
-            background: rgba(30,20,40,0.7);
-            padding: 0.3rem 0.9rem;
-            border-radius: 2rem;
-            font-size: 0.8rem;
-            font-weight: 500;
-            border-left: 3px solid #ff8866;
-        }
-        .flaw.warning {
-            border-left-color: #ffaa44;
-            background: rgba(80,60,30,0.6);
-        }
-        .flaw.critical {
-            border-left-color: #ff5566;
-            background: rgba(90,30,40,0.7);
+        #output {
+            position: relative;
+            width: 100vw;
+            max-width: 1000px;
+            aspect-ratio: 4 / 3;
+            margin: auto;
+            background: #000;
         }
         .status {
-            margin-top: 1rem;
-            font-size: 0.75rem;
-            color: #aac9ff;
-            text-align: center;
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 40px;
+            z-index: 10;
+            border-left: 3px solid #0f0;
+            letter-spacing: 0.5px;
         }
-        button {
-            background: rgba(255,180,100,0.2);
-            border: 1px solid #ffbb77;
-            padding: 0.3rem 1rem;
-            border-radius: 2rem;
-            color: #ffdd99;
-            cursor: pointer;
-            font-size: 0.75rem;
-            transition: 0.2s;
+        .fps {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            color: cyan;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 40px;
+            z-index: 10;
+            font-weight: bold;
         }
-        button:hover {
-            background: #ffaa55aa;
-            color: #0a0f1a;
+        .instruction {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+            z-index: 10;
+            pointer-events: none;
         }
-        @media (max-width: 700px) {
-            .results-panel { flex-direction: column; }
-            .score-num { font-size: 3rem; }
+        @media (max-width: 600px) {
+            .status, .fps, .instruction { font-size: 10px; padding: 4px 8px; }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
-
-<div class="dashboard">
-    <div class="camera-area">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="outputCanvas" width="800" height="600"></canvas>
-    </div>
-
-    <div class="results-panel">
-        <div class="rating-card">
-            <div class="big-score">
-                <span class="score-num" id="ratingValue">--</span>
-                <span class="score-denom">/10</span>
-            </div>
-            <div class="verdict" id="verdictText">🔍 initializing AI...</div>
-            <div class="metrics-break" id="metricsBreak">
-                <span class="metric-badge">⚖️ symmetry: --</span>
-                <span class="metric-badge">📐 harmony: --</span>
-                <span class="metric-badge">👁️ canthal tilt: --</span>
-            </div>
-        </div>
-        <div class="flaws-card">
-            <div class="flaws-header">🔎 FLAW DETECTION (omoggle-style)</div>
-            <ul class="flaw-list" id="flawList">
-                <li class="flaw">✨ analyzing features...</li>
-            </ul>
-        </div>
-    </div>
-    <div class="status" id="statusMsg">📸 waiting for camera → position face centrally</div>
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-        <button id="recalcBtn">⟳ Refresh analysis</button>
-    </div>
+<div class="container" id="output">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="overlayCanvas"></canvas>
+    <div class="status">🔒 FACE LOCK [ AIMBOT ACTIVE ]</div>
+    <div class="fps">⚡ 0 FPS</div>
+    <div class="instruction">📌 FACE STICK MODE • ZERO LATENCY TRACKING</div>
 </div>
+
+<!-- MediaPipe face_mesh + camera utils -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 
 <script>
     (function(){
-        // ---------- DOM elements ----------
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('outputCanvas');
-        const ctx = canvas.getContext('2d');
-        const ratingSpan = document.getElementById('ratingValue');
-        const verdictSpan = document.getElementById('verdictText');
-        const metricsSpan = document.getElementById('metricsBreak');
-        const flawListEl = document.getElementById('flawList');
-        const statusSpan = document.getElementById('statusMsg');
+        // ---------- ultra precise face tracking ----------
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('overlayCanvas');
+        const ctx = canvasElement.getContext('2d');
         
         let faceMesh = null;
         let camera = null;
-        let latestLandmarks = null;     // raw 3D landmarks (normalized)
-        let animationFrame = null;
-        let canvasWidth = 800, canvasHeight = 600;
+        let lastTimestamp = 0;
+        let frameCount = 0;
+        let fps = 0;
         
-        // ------ landmark indices (MediaPipe 468) ------
-        const LEFT_EYE_OUTER = 33;
-        const LEFT_EYE_INNER = 133;
-        const RIGHT_EYE_OUTER = 263;
-        const RIGHT_EYE_INNER = 362;
+        // dimensions
+        let canvasWidth = 0, canvasHeight = 0;
         
-        const LEFT_EYE_INDICES = [33, 133, 157, 158, 159, 160, 161, 173, 246, 243];
-        const RIGHT_EYE_INDICES = [362, 263, 387, 386, 385, 384, 398, 466, 414, 417];
-        const NOSE_TIP = 1;
-        const NOSE_BRIDGE = 168;   // near glabella
-        const MOUTH_LEFT = 61;
-        const MOUTH_RIGHT = 291;
+        // locking visualization: tight bounding circle that sticks to face center (nose bridge index 1)
+        // we use landmark 1 (nose bridge) and 168 (nose tip region) + full face bounding for aimbot style
+        // for "aimbot accuracy" we compute the center of face (average of key central points)
+        // and draw a high-precision reticle that NEVER leaves the face.
         
-        // Symmetric pairs for roll-corrected symmetry evaluation
-        const SYMM_PAIRS = [
-            [33, 263], [133, 362], [61, 291], [78, 308], [81, 311],
-            [55, 285], [70, 300], [168, 397], [187, 411], [205, 425]
-        ];
-        
-        // ---- Helper: get average point of indices ----
-        function getAvgPoint(landmarks, indices) {
-            let sx = 0, sy = 0, count = 0;
-            for(let i of indices) {
-                if(landmarks[i]) { sx += landmarks[i].x; sy += landmarks[i].y; count++; }
+        function getFaceCenter(landmarks, dimensions) {
+            // Use multiple stable landmarks: nose tip (1), chin (152), left eye corner (33), right eye corner (263)
+            // this creates a dead-center stabilization that mimics aimbot.
+            const indices = [1, 152, 33, 263, 168, 6];  // nose bridge, chin, left eye, right eye, nose tip, right eyebrow center
+            let sumX = 0, sumY = 0;
+            let count = 0;
+            for(let idx of indices) {
+                if(landmarks[idx]) {
+                    sumX += landmarks[idx].x * dimensions.width;
+                    sumY += landmarks[idx].y * dimensions.height;
+                    count++;
+                }
             }
             if(count === 0) return null;
-            return { x: sx/count, y: sy/count };
+            return { x: sumX / count, y: sumY / count };
         }
         
-        // ---- rotate points around center to counter head roll ----
-        function rotatePoints(landmarks, angleRad, centerX, centerY) {
-            const cos = Math.cos(angleRad);
-            const sin = Math.sin(angleRad);
-            const rotated = [];
-            for(let i=0; i<landmarks.length; i++) {
-                const p = landmarks[i];
-                if(!p) { rotated.push(null); continue; }
-                const dx = p.x - centerX;
-                const dy = p.y - centerY;
-                const rx = centerX + dx * cos - dy * sin;
-                const ry = centerY + dx * sin + dy * cos;
-                rotated.push({ x: rx, y: ry, z: p.z });
-            }
-            return rotated;
-        }
-        
-        // ---- estimate head roll angle from eye centers (to achieve invariance) ----
-        function getHeadRollAngle(landmarks) {
-            const leftEye = getAvgPoint(landmarks, LEFT_EYE_INDICES);
-            const rightEye = getAvgPoint(landmarks, RIGHT_EYE_INDICES);
-            if(!leftEye || !rightEye) return 0;
-            const dx = rightEye.x - leftEye.x;
-            const dy = rightEye.y - leftEye.y;
-            return -Math.atan2(dy, dx);   // angle to rotate eyes level
-        }
-        
-        // ---- compute canthal tilt (angle of outer->inner vector) negative tilt = flaw ----
-        function computeCanthalTilt(landmarks, correctedLandmarks = null) {
-            // use raw or corrected? tilt is independent of roll, but we use corrected for consistent horizontal reference
-            const lm = correctedLandmarks || landmarks;
-            const leftOuter = lm[LEFT_EYE_OUTER];
-            const leftInner = lm[LEFT_EYE_INNER];
-            const rightOuter = lm[RIGHT_EYE_OUTER];
-            const rightInner = lm[RIGHT_EYE_INNER];
-            if(!leftOuter || !leftInner || !rightOuter || !rightInner) return null;
-            
-            // angle relative to horizontal: vector from inner to outer
-            const leftVec = { x: leftOuter.x - leftInner.x, y: leftOuter.y - leftInner.y };
-            const rightVec = { x: rightOuter.x - rightInner.x, y: rightOuter.y - rightInner.y };
-            const leftAngle = Math.atan2(leftVec.y, leftVec.x) * 180 / Math.PI;
-            const rightAngle = Math.atan2(rightVec.y, rightVec.x) * 180 / Math.PI;
-            const avgTilt = (leftAngle + rightAngle) / 2;
-            return avgTilt;   // positive = outer corner higher (good), negative = droopy (bad)
-        }
-        
-        // ---- symmetry score on roll-corrected landmarks (mirror across vertical midline) ----
-        function computeSymmetryScore(correctedLandmarks, centerX) {
-            let totalDiff = 0;
-            let valid = 0;
-            for(let [leftIdx, rightIdx] of SYMM_PAIRS) {
-                const left = correctedLandmarks[leftIdx];
-                const right = correctedLandmarks[rightIdx];
-                if(left && right) {
-                    const mirroredX = 2 * centerX - left.x;
-                    const diffX = mirroredX - right.x;
-                    const diffY = left.y - right.y;   // Y mirror same
-                    const dist = Math.hypot(diffX, diffY);
-                    totalDiff += dist;
-                    valid++;
-                }
-            }
-            if(valid === 0) return 0.6;
-            const avgDiff = totalDiff / valid;
-            let sym = 1.0 - Math.min(0.9, avgDiff * 12);
-            sym = Math.max(0.25, Math.min(1.0, sym));
-            return sym;
-        }
-        
-        // ---- proportional harmony (after roll correction) ----
-        function computeProportionScore(correctedLandmarks, bounds, canthalTilt) {
-            if(!bounds || bounds.width <= 0) return 0.5;
-            const faceRatio = bounds.height / bounds.width;   // height/width ideal ~1.35
-            const idealRatio = 1.35;
-            let ratioScore = 1.0 - Math.min(0.7, Math.abs(faceRatio - idealRatio) / 0.45);
-            ratioScore = Math.max(0.3, Math.min(1.0, ratioScore));
-            
-            // interocular distance / face width
-            const leftEyeC = getAvgPoint(correctedLandmarks, LEFT_EYE_INDICES);
-            const rightEyeC = getAvgPoint(correctedLandmarks, RIGHT_EYE_INDICES);
-            let eyeSpanScore = 0.65;
-            if(leftEyeC && rightEyeC) {
-                const eyeDist = Math.hypot(leftEyeC.x - rightEyeC.x, leftEyeC.y - rightEyeC.y);
-                const ratioEye = eyeDist / bounds.width;
-                const idealEye = 0.45;
-                const eyeError = Math.abs(ratioEye - idealEye) / 0.18;
-                eyeSpanScore = 1.0 - Math.min(0.85, eyeError);
-                eyeSpanScore = Math.max(0.35, eyeSpanScore);
-            }
-            
-            // mouth width ratio
-            const leftMouth = correctedLandmarks[MOUTH_LEFT];
-            const rightMouth = correctedLandmarks[MOUTH_RIGHT];
-            let mouthScore = 0.65;
-            if(leftMouth && rightMouth) {
-                const mouthW = Math.hypot(leftMouth.x - rightMouth.x, leftMouth.y - rightMouth.y);
-                const mouthRatio = mouthW / bounds.width;
-                const idealMouth = 0.48;
-                const mouthError = Math.abs(mouthRatio - idealMouth) / 0.2;
-                mouthScore = 1.0 - Math.min(0.8, mouthError);
-                mouthScore = Math.max(0.3, mouthScore);
-            }
-            
-            // canthal tilt influence: negative tilt reduces proportion harmony
-            let tiltFactor = 1.0;
-            if(canthalTilt !== null && canthalTilt < -1.5) tiltFactor = 0.86;
-            else if(canthalTilt < -3) tiltFactor = 0.72;
-            else if(canthalTilt < -5) tiltFactor = 0.55;
-            
-            const proportion = (ratioScore * 0.4 + eyeSpanScore * 0.35 + mouthScore * 0.25) * tiltFactor;
-            return Math.min(1.0, proportion);
-        }
-        
-        // ---- detect specific flaws (omoggle style) ----
-        function detectFlaws(originalLandmarks, correctedLandmarks, canthalTilt, symScore, propScore) {
-            const flaws = [];
-            // 1. Negative canthal tilt
-            if(canthalTilt !== null && canthalTilt < -2.0) {
-                const severity = canthalTilt < -4.5 ? "critical" : (canthalTilt < -2.8 ? "warning" : "moderate");
-                flaws.push({ text: `⚠️ Negative canthal tilt (${canthalTilt.toFixed(1)}°)`, severity: severity || "warning" });
-            } else if(canthalTilt !== null && canthalTilt > 3.5) {
-                flaws.push({ text: `✨ Positive canthal tilt (${canthalTilt.toFixed(1)}°) – attractive`, severity: "good" });
-            } else if(canthalTilt !== null) {
-                flaws.push({ text: `✓ Neutral canthal tilt (${canthalTilt.toFixed(1)}°)`, severity: "neutral" });
-            }
-            
-            // 2. Asymmetry flaw
-            if(symScore < 0.65) flaws.push({ text: `🔄 Facial asymmetry (${Math.round((1-symScore)*100)}% deviation)`, severity: "warning" });
-            else if(symScore < 0.8) flaws.push({ text: `📐 Mild asymmetry detected`, severity: "moderate" });
-            
-            // 3. Harmony / proportion flaw
-            if(propScore < 0.55) flaws.push({ text: `📏 Unconventional facial proportions`, severity: "warning" });
-            else if(propScore < 0.7) flaws.push({ text: `⚖️ Slightly unbalanced ratios`, severity: "moderate" });
-            
-            // 4. Eye distance anomaly (too close/wide)
-            const leftEye = getAvgPoint(correctedLandmarks, LEFT_EYE_INDICES);
-            const rightEye = getAvgPoint(correctedLandmarks, RIGHT_EYE_INDICES);
-            if(leftEye && rightEye && correctedLandmarks[NOSE_TIP]) {
-                const faceBounds = getBounds(correctedLandmarks);
-                if(faceBounds.width > 0) {
-                    const eyeDist = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
-                    const ratio = eyeDist / faceBounds.width;
-                    if(ratio < 0.38) flaws.push({ text: `👁️ Eyes set too close`, severity: "moderate" });
-                    else if(ratio > 0.55) flaws.push({ text: `👁️ Wide-set eyes (unique)`, severity: "neutral" });
-                }
-            }
-            
-            // 5. Mouth asymmetry / tilt
-            const leftM = correctedLandmarks[MOUTH_LEFT];
-            const rightM = correctedLandmarks[MOUTH_RIGHT];
-            if(leftM && rightM && correctedLandmarks[NOSE_TIP]) {
-                const yDiff = Math.abs(leftM.y - rightM.y);
-                if(yDiff > 0.022) flaws.push({ text: `😐 Slight mouth asymmetry`, severity: "moderate" });
-            }
-            
-            return flaws;
-        }
-        
-        function getBounds(landmarks) {
-            let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+        function getFaceBoundingBox(landmarks, dimensions, paddingFactor = 0.22) {
+            // get min/max of all landmarks for a tight box (aimbot wall)
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             for(let lm of landmarks) {
-                if(lm && lm.x !== undefined) {
-                    if(lm.x < minX) minX = lm.x;
-                    if(lm.y < minY) minY = lm.y;
-                    if(lm.x > maxX) maxX = lm.x;
-                    if(lm.y > maxY) maxY = lm.y;
-                }
+                const x = lm.x * dimensions.width;
+                const y = lm.y * dimensions.height;
+                if(x < minX) minX = x;
+                if(x > maxX) maxX = x;
+                if(y < minY) minY = y;
+                if(y > maxY) maxY = y;
             }
-            return { minX, minY, maxX, maxY, width: maxX-minX, height: maxY-minY };
+            const width = maxX - minX;
+            const height = maxY - minY;
+            const padX = width * paddingFactor;
+            const padY = height * paddingFactor;
+            return {
+                x: Math.max(0, minX - padX),
+                y: Math.max(0, minY - padY),
+                w: Math.min(dimensions.width - (minX - padX), width + padX * 2),
+                h: Math.min(dimensions.height - (minY - padY), height + padY * 2)
+            };
         }
         
-        // ---- FINAL RATING ENGINE (invariant to roll) ----
-        function computeFinalRatingAndFlaws(landmarks) {
-            if(!landmarks || landmarks.length < 400) return null;
+        function drawAimbotOverlay(landmarks, dimensions) {
+            if(!landmarks || landmarks.length === 0) return;
             
-            // 1. estimate head roll and rotate landmarks to frontalize
-            const rollRad = getHeadRollAngle(landmarks);
-            const boundsRaw = getBounds(landmarks);
-            const centerX = (boundsRaw.minX + boundsRaw.maxX)/2;
-            const centerY = (boundsRaw.minY + boundsRaw.maxY)/2;
-            const correctedLm = rotatePoints(landmarks, rollRad, centerX, centerY);
-            const correctedBounds = getBounds(correctedLm);
+            ctx.clearRect(0, 0, dimensions.width, dimensions.height);
             
-            // 2. compute canthal tilt on corrected landmarks (eyes now horizontal)
-            const canthal = computeCanthalTilt(landmarks, correctedLm);
+            // 1) ultra tight bounding box (smooth lock)
+            const bbox = getFaceBoundingBox(landmarks, dimensions, 0.18);
+            ctx.save();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = "#ff3366";
+            ctx.lineWidth = 3;
+            ctx.shadowColor = "rgba(255,0,100,0.6)";
+            ctx.strokeRect(bbox.x, bbox.y, bbox.w, bbox.h);
             
-            // 3. symmetry (using corrected)
-            const verticalCenter = (correctedBounds.minX + correctedBounds.maxX)/2;
-            const symmetry = computeSymmetryScore(correctedLm, verticalCenter);
+            // inner glint
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.9)";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bbox.x + 2, bbox.y + 2, bbox.w - 4, bbox.h - 4);
             
-            // 4. proportion / harmony score (includes canthal influence)
-            const proportion = computeProportionScore(correctedLm, correctedBounds, canthal);
-            
-            // 5. additional eye alignment / harmony micro
-            const leftEyeAvg = getAvgPoint(correctedLm, LEFT_EYE_INDICES);
-            const rightEyeAvg = getAvgPoint(correctedLm, RIGHT_EYE_INDICES);
-            let eyeAlignScore = 1.0;
-            if(leftEyeAvg && rightEyeAvg && correctedBounds.height>0) {
-                const yDiffAbs = Math.abs(leftEyeAvg.y - rightEyeAvg.y) / correctedBounds.height;
-                eyeAlignScore = 1.0 - Math.min(0.7, yDiffAbs * 8);
-                eyeAlignScore = Math.max(0.5, eyeAlignScore);
-            }
-            
-            // 6. canthal impact on final rating (direct negative penalty)
-            let canthalBonus = 0.0;
-            if(canthal !== null) {
-                if(canthal >= 2.5) canthalBonus = 0.09;
-                else if(canthal >= 0.5) canthalBonus = 0.03;
-                else if(canthal >= -1.2) canthalBonus = -0.02;
-                else if(canthal >= -3.0) canthalBonus = -0.12;
-                else canthalBonus = -0.22;
-            }
-            
-            // weighted raw score (0-1)
-            let raw = (symmetry * 0.32) + (proportion * 0.44) + (eyeAlignScore * 0.18) + (canthalBonus * 0.06);
-            raw = Math.min(0.985, Math.max(0.1, raw));
-            let rating = 1.0 + (raw * 9.0);
-            rating = Math.min(10.0, Math.max(1.0, parseFloat(rating.toFixed(1))));
-            
-            // extra small correction for excellent symmetry
-            if(symmetry > 0.85 && proportion > 0.72 && rating < 9.3) rating = Math.min(9.7, rating + 0.25);
-            
-            // generate flaw list
-            const flaws = detectFlaws(landmarks, correctedLm, canthal, symmetry, proportion);
-            
-            return { rating, symmetry, proportion, canthalTilt: canthal, flaws, eyeAlignment: eyeAlignScore };
-        }
-        
-        // ---- UI updates with omoggle style ----
-        function updateUI(analysis) {
-            if(!analysis) {
-                ratingSpan.innerText = '?';
-                verdictSpan.innerText = '😕 no face detected';
-                metricsSpan.innerHTML = `<span class="metric-badge">⚖️ symmetry: --</span>
-                                          <span class="metric-badge">📐 harmony: --</span>
-                                          <span class="metric-badge">👁️ canthal tilt: --</span>`;
-                flawListEl.innerHTML = '<li class="flaw">❌ position face in frame</li>';
-                statusSpan.innerHTML = '📷 waiting for clear face → ensure good lighting';
-                return;
-            }
-            
-            const r = analysis.rating;
-            ratingSpan.innerText = r.toFixed(1);
-            
-            let verdict = '';
-            if(r >= 9.0) verdict = '🌟 ETHEREAL · GOLDEN RATIO 🌟';
-            else if(r >= 8.0) verdict = '✨ STRIKING · HIGH SYMMETRY ✨';
-            else if(r >= 7.0) verdict = '💎 ATTRACTIVE · WELL BALANCED 💎';
-            else if(r >= 5.8) verdict = '🌸 PLEASING · GOOD FEATURES 🌸';
-            else if(r >= 4.5) verdict = '🌀 CHARACTER · UNIQUE APPEAL 🌀';
-            else verdict = '🌙 DISTINCT · POTENTIAL RADIANCE 🌙';
-            verdictSpan.innerText = verdict;
-            
-            const symPercent = Math.round(analysis.symmetry * 100);
-            const harmPercent = Math.round(analysis.proportion * 100);
-            const tiltDisplay = analysis.canthalTilt !== null ? analysis.canthalTilt.toFixed(1)+'°' : '--';
-            metricsSpan.innerHTML = `<span class="metric-badge">⚖️ symmetry: ${symPercent}%</span>
-                                     <span class="metric-badge">📐 harmony: ${harmPercent}%</span>
-                                     <span class="metric-badge">👁️ canthal tilt: ${tiltDisplay}</span>`;
-            
-            // flaw list
-            if(analysis.flaws.length === 0) {
-                flawListEl.innerHTML = '<li class="flaw" style="border-left-color:#88ffaa;">✨ No major flaws detected ✨</li>';
-            } else {
-                flawListEl.innerHTML = analysis.flaws.map(f => {
-                    let severityClass = 'flaw';
-                    if(f.severity === 'critical') severityClass = 'flaw critical';
-                    else if(f.severity === 'warning') severityClass = 'flaw warning';
-                    else if(f.severity === 'moderate') severityClass = 'flaw';
-                    else if(f.severity === 'good') severityClass = 'flaw' + ' good-tilt';
-                    return `<li class="${severityClass}">${f.text}</li>`;
-                }).join('');
-                if(analysis.canthalTilt !== null && analysis.canthalTilt > 2.5 && !analysis.flaws.some(f=>f.text.includes('Positive'))) {
-                    // ensure positive tilt recognized
-                }
-            }
-            statusSpan.innerHTML = '✅ face analyzed | head tilt compensated | accurate rating';
-        }
-        
-        // ---- drawing routine with roll-invariant overlay (show canthal tilt lines) ----
-        function drawResults(landmarks, analysis, rollRad) {
-            if(!ctx || !canvasWidth || !canvasHeight) return;
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            if(!landmarks) return;
-            
-            const scaled = landmarks.map(lm => ({ x: lm.x * canvasWidth, y: lm.y * canvasHeight, z: lm.z }));
-            
-            // draw mesh softly
-            if(window.drawConnectors && window.FACEMESH_TESSELATION) {
-                ctx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
-                ctx.lineWidth = 1.2;
-                drawConnectors(ctx, scaled, window.FACEMESH_TESSELATION, { color: 'rgba(90,190,240,0.25)' });
-                ctx.strokeStyle = 'rgba(255, 200, 100, 0.6)';
-                drawConnectors(ctx, scaled, window.FACEMESH_CONTOURS, { color: 'rgba(255, 160, 80, 0.5)' });
-            }
-            
-            // draw canthal tilt lines (left & right eye vectors)
-            const leftOuter = landmarks[LEFT_EYE_OUTER];
-            const leftInner = landmarks[LEFT_EYE_INNER];
-            const rightOuter = landmarks[RIGHT_EYE_OUTER];
-            const rightInner = landmarks[RIGHT_EYE_INNER];
-            if(leftOuter && leftInner && rightOuter && rightInner) {
+            // 2) center aim dot (aimbot crosshair that never drifts)
+            const center = getFaceCenter(landmarks, dimensions);
+            if(center) {
+                // outer ring
                 ctx.beginPath();
-                ctx.moveTo(leftInner.x*canvasWidth, leftInner.y*canvasHeight);
-                ctx.lineTo(leftOuter.x*canvasWidth, leftOuter.y*canvasHeight);
-                ctx.strokeStyle = '#ffaa77';
+                ctx.arc(center.x, center.y, 16, 0, 2 * Math.PI);
+                ctx.strokeStyle = "#00ffcc";
                 ctx.lineWidth = 2.5;
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(rightInner.x*canvasWidth, rightInner.y*canvasHeight);
-                ctx.lineTo(rightOuter.x*canvasWidth, rightOuter.y*canvasHeight);
+                ctx.arc(center.x, center.y, 8, 0, 2 * Math.PI);
+                ctx.strokeStyle = "#ff44aa";
+                ctx.stroke();
+                // inner dot
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = "#ff0000";
+                ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, 1.2, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // crosshair lines
+                ctx.beginPath();
+                ctx.moveTo(center.x - 28, center.y);
+                ctx.lineTo(center.x - 12, center.y);
+                ctx.moveTo(center.x + 12, center.y);
+                ctx.lineTo(center.x + 28, center.y);
+                ctx.moveTo(center.x, center.y - 28);
+                ctx.lineTo(center.x, center.y - 12);
+                ctx.moveTo(center.x, center.y + 12);
+                ctx.lineTo(center.x, center.y + 28);
+                ctx.strokeStyle = "#ffffffcc";
+                ctx.lineWidth = 2;
                 ctx.stroke();
             }
             
-            // optional: show tilt label
-            if(analysis && analysis.canthalTilt !== null) {
-                ctx.font = "bold 14px 'Segoe UI'";
-                ctx.fillStyle = "#ffddbb";
-                ctx.shadowBlur = 0;
-                ctx.fillText(`Canthal: ${analysis.canthalTilt.toFixed(1)}°`, 20, 40);
-            }
-        }
-        
-        // ---- MediaPipe callback ----
-        function onResults(results) {
-            if(results && results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const rawLm = results.multiFaceLandmarks[0];
-                latestLandmarks = rawLm;
-                const analysis = computeFinalRatingAndFlaws(rawLm);
-                updateUI(analysis);
-                const rollRad = getHeadRollAngle(rawLm);
-                drawResults(rawLm, analysis, rollRad);
-            } else {
-                latestLandmarks = null;
-                updateUI(null);
-                if(ctx) {
-                    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-                    ctx.font = "18px system-ui";
-                    ctx.fillStyle = "#aaaacc";
-                    ctx.fillText("🧘 center face · adjust lighting", canvasWidth/2-130, canvasHeight/2);
+            // 3) draw key facial landmarks (tiny dots for precision feedback)
+            for(let i = 0; i < landmarks.length; i++) {
+                const x = landmarks[i].x * dimensions.width;
+                const y = landmarks[i].y * dimensions.height;
+                if(i % 15 === 0) {  // draw subset for performance but still feels aimbot detailed
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1.2, 0, 2 * Math.PI);
+                    ctx.fillStyle = "#66ff66";
+                    ctx.fill();
                 }
             }
+            
+            // additional "laser lock" effect: line from center to top of head (landmark 10)
+            if(landmarks[10] && center) {
+                const topX = landmarks[10].x * dimensions.width;
+                const topY = landmarks[10].y * dimensions.height;
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(topX, topY);
+                ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+            }
+            ctx.restore();
         }
         
-        // ---- resize canvas dynamically ----
+        // FPS counter
+        function updateFPS(now) {
+            frameCount++;
+            if(now - lastTimestamp >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTimestamp = now;
+                const fpsElem = document.querySelector('.fps');
+                if(fpsElem) fpsElem.innerText = `⚡ ${fps} FPS`;
+            }
+            requestAnimationFrame((t) => updateFPS(t));
+        }
+        
+        // resize canvas to match video feed
         function resizeCanvas() {
-            const container = document.querySelector('.camera-area');
-            if(container) {
-                const rect = container.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = rect.height;
-                canvasWidth = rect.width;
-                canvasHeight = rect.height;
+            if(videoElement.videoWidth && videoElement.videoHeight) {
+                canvasWidth = videoElement.videoWidth;
+                canvasHeight = videoElement.videoHeight;
+                canvasElement.width = canvasWidth;
+                canvasElement.height = canvasHeight;
+                canvasElement.style.width = `${canvasWidth}px`;
+                canvasElement.style.height = `${canvasHeight}px`;
+                const container = document.getElementById('output');
+                container.style.width = '100%';
+                container.style.maxWidth = `${canvasWidth}px`;
+                container.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
             }
         }
         
-        // ---- init MediaPipe ----
-        function init() {
-            faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+        // MediaPipe results callback
+        function onFaceMeshResults(results) {
+            if(!canvasElement || !ctx) return;
+            if(canvasWidth === 0 || canvasHeight === 0) {
+                resizeCanvas();
+                return;
+            }
+            if(results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                // take the most dominant face (first)
+                const landmarks = results.multiFaceLandmarks[0];
+                const dimensions = { width: canvasWidth, height: canvasHeight };
+                drawAimbotOverlay(landmarks, dimensions);
+            } else {
+                // no face: clear canvas and show hint
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                ctx.font = "bold 18px monospace";
+                ctx.fillStyle = "#ff6666";
+                ctx.shadowBlur = 0;
+                ctx.fillText("⚠️ NO TARGET — FACE NOT DETECTED", canvasWidth/2 - 180, canvasHeight/2);
+            }
+        }
+        
+        // initialize face mesh with maximum detection accuracy
+        function initFaceMesh() {
+            faceMesh = new FaceMesh({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                }
+            });
+            
+            // Settings for aimbot-level precision:
+            // maxNumFaces: 1 (dedicated lock)
+            // refineLandmarks: true -> adds iris landmarks, tighter tracking
+            // minDetectionConfidence: 0.5 -> faster response
+            // minTrackingConfidence: 0.5 -> sticky tracking
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
-                minDetectionConfidence: 0.55,
-                minTrackingConfidence: 0.55
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
             });
-            faceMesh.onResults(onResults);
             
-            camera = new Camera(video, {
-                onFrame: async () => { if(faceMesh) await faceMesh.send({ image: video }); },
-                width: 640, height: 480
-            });
-            camera.start().then(() => {
-                statusSpan.innerHTML = '📸 AI engine active · roll-invariant mode';
-            }).catch(e => { statusSpan.innerHTML = '⚠️ allow camera access'; });
-            
-            window.addEventListener('resize', () => { resizeCanvas(); setTimeout(resizeCanvas, 50); });
-            resizeCanvas();
-            setInterval(() => { if(canvas) resizeCanvas(); }, 800);
+            faceMesh.onResults(onFaceMeshResults);
         }
         
-        document.getElementById('recalcBtn').addEventListener('click', () => {
-            if(latestLandmarks) {
-                const analysis = computeFinalRatingAndFlaws(latestLandmarks);
-                updateUI(analysis);
-                drawResults(latestLandmarks, analysis, getHeadRollAngle(latestLandmarks));
-                statusSpan.innerHTML = '⟳ analysis refreshed (tilt compensated)';
-                setTimeout(() => { if(statusSpan.innerHTML.includes('refreshed')) statusSpan.innerHTML = '✅ face analyzed'; }, 1500);
-            } else {
-                statusSpan.innerHTML = '👀 no face data – look into camera';
+        // start camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } });
+                videoElement.srcObject = stream;
+                await new Promise((resolve) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play();
+                        resolve();
+                    };
+                });
+                resizeCanvas();
+                // initialize camera utils
+                camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if(faceMesh) {
+                            await faceMesh.send({ image: videoElement });
+                        }
+                    },
+                    width: 1280,
+                    height: 720
+                });
+                camera.start();
+            } catch(err) {
+                console.error("Camera error", err);
+                ctx.font = "20px monospace";
+                ctx.fillStyle = "red";
+                ctx.fillText("❌ Camera access denied or error", 50, 100);
+            }
+        }
+        
+        // make canvas responsive on resize
+        window.addEventListener('resize', () => {
+            if(videoElement.videoWidth) {
+                canvasWidth = videoElement.videoWidth;
+                canvasHeight = videoElement.videoHeight;
+                canvasElement.width = canvasWidth;
+                canvasElement.height = canvasHeight;
             }
         });
         
-        init();
+        // kickstart
+        initFaceMesh();
+        startCamera();
+        lastTimestamp = performance.now();
+        requestAnimationFrame((t) => updateFPS(t));
+        
+        // extra smoothness: video frames may cause slight lag, but mediapipe handles.
+        // forced aimbot level "stuck" due to immediate overlay update per frame.
     })();
 </script>
 </body>
