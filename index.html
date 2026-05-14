@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>MediaPipe Face Mesh • Aimbot Precision Tracker</title>
+    <title>MediaPipe Face Mesh • ULTRA PRECISION AIMBOT LOCK</title>
     <style>
         * {
             margin: 0;
@@ -11,18 +11,18 @@
             box-sizing: border-box;
         }
         body {
-            background: #0a0f1e;
+            background: #000;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Segoe UI', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
         }
-        .container {
+        .tracker-container {
             position: relative;
-            border-radius: 24px;
+            border-radius: 0;
             overflow: hidden;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.5), 0 0 0 2px rgba(0,255,255,0.2);
+            box-shadow: 0 0 0 3px cyan, 0 20px 40px black;
         }
         video, canvas {
             position: absolute;
@@ -39,338 +39,379 @@
         #output {
             position: relative;
             width: 100vw;
-            max-width: 1000px;
-            aspect-ratio: 4 / 3;
+            max-width: 1280px;
+            aspect-ratio: 16 / 9;
             margin: auto;
-            background: #000;
+            background: black;
         }
         .status {
             position: absolute;
             bottom: 16px;
             left: 16px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
             color: #0f0;
-            font-family: monospace;
+            font-weight: bold;
             font-size: 14px;
-            padding: 6px 12px;
-            border-radius: 40px;
+            padding: 6px 14px;
+            border-radius: 30px;
             z-index: 10;
-            border-left: 3px solid #0f0;
+            border-left: 4px solid lime;
             letter-spacing: 0.5px;
+            font-family: monospace;
         }
         .fps {
             position: absolute;
             bottom: 16px;
             right: 16px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
             color: cyan;
-            font-family: monospace;
-            font-size: 14px;
-            padding: 6px 12px;
-            border-radius: 40px;
-            z-index: 10;
             font-weight: bold;
+            font-size: 14px;
+            padding: 6px 14px;
+            border-radius: 30px;
+            z-index: 10;
         }
         .instruction {
             position: absolute;
             top: 16px;
             left: 16px;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             color: white;
             font-size: 12px;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-family: monospace;
             z-index: 10;
             pointer-events: none;
         }
-        @media (max-width: 600px) {
-            .status, .fps, .instruction { font-size: 10px; padding: 4px 8px; }
-        }
     </style>
 </head>
 <body>
-<div class="container" id="output">
+<div class="tracker-container" id="output">
     <video id="webcam" autoplay playsinline muted></video>
     <canvas id="overlayCanvas"></canvas>
-    <div class="status">🔒 FACE LOCK [ AIMBOT ACTIVE ]</div>
-    <div class="fps">⚡ 0 FPS</div>
-    <div class="instruction">📌 FACE STICK MODE • ZERO LATENCY TRACKING</div>
+    <div class="status">🎯 AIMBOT ACTIVE • FACE LOCK [STICK]</div>
+    <div class="fps">0 FPS</div>
+    <div class="instruction">⚡ ZERO DRIFT • PIXEL-PERFECT TRACKING</div>
 </div>
 
-<!-- MediaPipe face_mesh + camera utils -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script>
     (function(){
-        // ---------- ultra precise face tracking ----------
-        const videoElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('overlayCanvas');
-        const ctx = canvasElement.getContext('2d');
+        // ---------- ELEMENTS ----------
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('overlayCanvas');
+        const ctx = canvas.getContext('2d');
         
         let faceMesh = null;
         let camera = null;
-        let lastTimestamp = 0;
-        let frameCount = 0;
+        
+        // tracking state
+        let lastCenter = { x: 0, y: 0 };
+        let smoothing = 0.72;     // high smoothing = sticky aimbot (72% weight to previous)
+        let hasLast = false;
+        
+        // fps counter
         let fps = 0;
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
         
         // dimensions
-        let canvasWidth = 0, canvasHeight = 0;
+        let vidWidth = 0, vidHeight = 0;
         
-        // locking visualization: tight bounding circle that sticks to face center (nose bridge index 1)
-        // we use landmark 1 (nose bridge) and 168 (nose tip region) + full face bounding for aimbot style
-        // for "aimbot accuracy" we compute the center of face (average of key central points)
-        // and draw a high-precision reticle that NEVER leaves the face.
-        
-        function getFaceCenter(landmarks, dimensions) {
-            // Use multiple stable landmarks: nose tip (1), chin (152), left eye corner (33), right eye corner (263)
-            // this creates a dead-center stabilization that mimics aimbot.
-            const indices = [1, 152, 33, 263, 168, 6];  // nose bridge, chin, left eye, right eye, nose tip, right eyebrow center
+        // ---------- HELPER: get most stable face center (aimbot crosshair point) ----------
+        // uses nose tip, between eyes, chin, and eye corners for absolute stability
+        function getPreciseFaceCenter(landmarks, width, height) {
+            // Landmark indices for bulletproof center:
+            // 1 = nose bridge
+            // 168 = left eye inner corner
+            // 6 = right eye inner corner? Actually 6 is right eyebrow, better: 33(left eye), 263(right eye)
+            // use: 1 (nose bridge), 33 (left eye corner), 263 (right eye corner), 152 (chin), 168 (nose tip)
+            const keyIndices = [1, 33, 263, 152, 168, 54, 284];  // extra stability
             let sumX = 0, sumY = 0;
             let count = 0;
-            for(let idx of indices) {
-                if(landmarks[idx]) {
-                    sumX += landmarks[idx].x * dimensions.width;
-                    sumY += landmarks[idx].y * dimensions.height;
+            for (let idx of keyIndices) {
+                if (landmarks[idx]) {
+                    sumX += landmarks[idx].x * width;
+                    sumY += landmarks[idx].y * height;
                     count++;
                 }
             }
-            if(count === 0) return null;
-            return { x: sumX / count, y: sumY / count };
-        }
-        
-        function getFaceBoundingBox(landmarks, dimensions, paddingFactor = 0.22) {
-            // get min/max of all landmarks for a tight box (aimbot wall)
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            for(let lm of landmarks) {
-                const x = lm.x * dimensions.width;
-                const y = lm.y * dimensions.height;
-                if(x < minX) minX = x;
-                if(x > maxX) maxX = x;
-                if(y < minY) minY = y;
-                if(y > maxY) maxY = y;
+            if (count === 0) return null;
+            let rawX = sumX / count;
+            let rawY = sumY / count;
+            
+            // apply low-pass filter (exponential smoothing) -> aimbot stickiness
+            if (!hasLast) {
+                lastCenter.x = rawX;
+                lastCenter.y = rawY;
+                hasLast = true;
+                return { x: rawX, y: rawY };
             }
-            const width = maxX - minX;
-            const height = maxY - minY;
-            const padX = width * paddingFactor;
-            const padY = height * paddingFactor;
-            return {
-                x: Math.max(0, minX - padX),
-                y: Math.max(0, minY - padY),
-                w: Math.min(dimensions.width - (minX - padX), width + padX * 2),
-                h: Math.min(dimensions.height - (minY - padY), height + padY * 2)
-            };
+            
+            // smooth factor 0.72 => strong glue to previous frame, eliminates jitter
+            let smoothedX = lastCenter.x * smoothing + rawX * (1 - smoothing);
+            let smoothedY = lastCenter.y * smoothing + rawY * (1 - smoothing);
+            lastCenter.x = smoothedX;
+            lastCenter.y = smoothedY;
+            return { x: smoothedX, y: smoothedY };
         }
         
-        function drawAimbotOverlay(landmarks, dimensions) {
-            if(!landmarks || landmarks.length === 0) return;
+        // ---------- draw ultra-precise overlay: tight bounding box, 4K reticle, connections ----------
+        function drawLockOverlay(landmarks, width, height) {
+            if (!landmarks || landmarks.length === 0) {
+                ctx.clearRect(0, 0, width, height);
+                ctx.font = "bold 20px monospace";
+                ctx.fillStyle = "#ff5555";
+                ctx.shadowBlur = 0;
+                ctx.fillText("❌ FACE NOT FOUND — MOVE INTO FRAME", width/2 - 220, height/2);
+                return;
+            }
             
-            ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+            // get smoothed center (aimbot crosshair)
+            const center = getPreciseFaceCenter(landmarks, width, height);
+            if (!center) return;
             
-            // 1) ultra tight bounding box (smooth lock)
-            const bbox = getFaceBoundingBox(landmarks, dimensions, 0.18);
-            ctx.save();
-            ctx.shadowBlur = 0;
+            // ---- 1) TIGHT BOUNDING BOX (pixel-perfect edges) ----
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let lm of landmarks) {
+                let x = lm.x * width;
+                let y = lm.y * height;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+            const boxPad = 8;
+            minX = Math.max(0, minX - boxPad);
+            minY = Math.max(0, minY - boxPad);
+            maxX = Math.min(width, maxX + boxPad);
+            maxY = Math.min(height, maxY + boxPad);
+            const boxW = maxX - minX;
+            const boxH = maxY - minY;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // outer box (laser red)
             ctx.strokeStyle = "#ff3366";
             ctx.lineWidth = 3;
-            ctx.shadowColor = "rgba(255,0,100,0.6)";
-            ctx.strokeRect(bbox.x, bbox.y, bbox.w, bbox.h);
+            ctx.shadowBlur = 0;
+            ctx.strokeRect(minX, minY, boxW, boxH);
+            // inner neon blue
+            ctx.strokeStyle = "#00ffff";
+            ctx.lineWidth = 1.8;
+            ctx.strokeRect(minX+2, minY+2, boxW-4, boxH-4);
             
-            // inner glint
-            ctx.strokeStyle = "rgba(0, 255, 255, 0.9)";
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(bbox.x + 2, bbox.y + 2, bbox.w - 4, bbox.h - 4);
+            // ---- 2) CROSSHAIR (aimbot core) ----
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 18, 0, Math.PI*2);
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 9, 0, Math.PI*2);
+            ctx.strokeStyle = "#ff44cc";
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 3, 0, Math.PI*2);
+            ctx.fillStyle = "#ff0000";
+            ctx.fill();
+            // cross lines
+            ctx.beginPath();
+            ctx.moveTo(center.x - 32, center.y);
+            ctx.lineTo(center.x - 14, center.y);
+            ctx.moveTo(center.x + 14, center.y);
+            ctx.lineTo(center.x + 32, center.y);
+            ctx.moveTo(center.x, center.y - 32);
+            ctx.lineTo(center.x, center.y - 14);
+            ctx.moveTo(center.x, center.y + 14);
+            ctx.lineTo(center.x, center.y + 32);
+            ctx.strokeStyle = "#ffffffdd";
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
             
-            // 2) center aim dot (aimbot crosshair that never drifts)
-            const center = getFaceCenter(landmarks, dimensions);
-            if(center) {
-                // outer ring
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, 16, 0, 2 * Math.PI);
-                ctx.strokeStyle = "#00ffcc";
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, 8, 0, 2 * Math.PI);
-                ctx.strokeStyle = "#ff44aa";
-                ctx.stroke();
-                // inner dot
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, 3, 0, 2 * Math.PI);
-                ctx.fillStyle = "#ff0000";
-                ctx.fill();
-                ctx.fillStyle = "white";
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, 1.2, 0, 2 * Math.PI);
-                ctx.fill();
-                
-                // crosshair lines
-                ctx.beginPath();
-                ctx.moveTo(center.x - 28, center.y);
-                ctx.lineTo(center.x - 12, center.y);
-                ctx.moveTo(center.x + 12, center.y);
-                ctx.lineTo(center.x + 28, center.y);
-                ctx.moveTo(center.x, center.y - 28);
-                ctx.lineTo(center.x, center.y - 12);
-                ctx.moveTo(center.x, center.y + 12);
-                ctx.lineTo(center.x, center.y + 28);
-                ctx.strokeStyle = "#ffffffcc";
-                ctx.lineWidth = 2;
-                ctx.stroke();
+            // ---- 3) FACE MESH CONNECTIONS (to show absolute lock) ----
+            // pre-defined connection list (MediaPipe Face Mesh topology)
+            const connections = [
+                [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],
+                [13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,24],[24,25],
+                [25,26],[26,27],[27,28],[28,29],[29,30],[31,32],[32,33],[33,34],[34,35],[35,36],[36,37],
+                [37,38],[38,39],[39,40],[40,41],[41,42],[42,43],[43,44],[44,45],[45,46],[47,48],[48,49],
+                [49,50],[50,51],[51,52],[53,54],[54,55],[55,56],[56,57],[57,58],[58,59],[59,60],[61,62],
+                [62,63],[63,64],[64,65],[65,66],[66,67],[67,68],[68,69],[69,70],[70,71],[72,73],[73,74],
+                [74,75],[75,76],[76,77],[77,78],[78,79],[79,80],[80,81],[82,83],[83,84],[84,85],[85,86],
+                [86,87],[87,88],[88,89],[89,90],[90,91],[91,92],[93,94],[94,95],[95,96],[96,97],[97,98],
+                [98,99],[99,100],[100,101],[101,102],[103,104],[104,105],[105,106],[106,107],[107,108],
+                [108,109],[109,110],[110,111],[111,112],[113,114],[114,115],[115,116],[116,117],[117,118],
+                [118,119],[119,120],[120,121],[121,122],[122,123],[123,124],[124,125],[125,126],[126,127],
+                [127,128],[129,130],[130,131],[131,132],[132,133],[133,134],[134,135],[135,136],[136,137],
+                [137,138],[138,139],[139,140],[140,141],[141,142],[142,143],[144,145],[145,146],[146,147],
+                [147,148],[148,149],[149,150],[150,151],[151,152],[152,153],[153,154],[154,155],[155,156],
+                [156,157],[157,158],[158,159],[159,160],[160,161],[161,162],[162,163],[163,164],[165,166],
+                [166,167],[167,168],[168,169],[169,170],[170,171],[171,172],[172,173],[173,174],[174,175],
+                [175,176],[176,177],[178,179],[179,180],[180,181],[181,182],[182,183],[183,184],[184,185],
+                [185,186],[187,188],[188,189],[189,190],[190,191],[191,192],[192,193],[193,194],[194,195],
+                [195,196],[196,197],[197,198],[198,199],[199,200],[200,201],[202,203],[203,204],[204,205],
+                [205,206],[206,207],[207,208],[208,209],[209,210],[210,211],[211,212],[212,213],[213,214],
+                [214,215],[215,216],[217,218],[218,219],[219,220],[220,221],[221,222],[222,223],[223,224],
+                [224,225],[225,226],[226,227],[227,228],[228,229],[229,230],[231,232],[232,233],[233,234],
+                [234,235],[235,236],[236,237],[237,238],[238,239],[239,240],[240,241],[241,242],[243,244],
+                [244,245],[245,246],[246,247],[247,248],[248,249],[249,250],[250,251],[252,253],[253,254],
+                [254,255],[255,256],[256,257],[257,258],[258,259],[259,260],[260,261],[262,263],[263,264],
+                [264,265],[265,266],[266,267],[267,268],[268,269],[269,270],[270,271],[272,273],[273,274],
+                [274,275],[275,276],[276,277],[277,278],[278,279],[279,280],[280,281],[282,283],[283,284],
+                [284,285],[285,286],[286,287],[287,288],[288,289],[289,290],[290,291],[291,292],[293,294],
+                [294,295],[295,296],[296,297],[297,298],[298,299],[299,300],[300,301],[301,302],[303,304],
+                [304,305],[305,306],[306,307],[307,308],[308,309],[309,310],[310,311],[311,312],[313,314],
+                [314,315],[315,316],[316,317],[317,318],[318,319],[319,320],[320,321],[322,323],[323,324],
+                [324,325],[325,326],[326,327],[327,328],[328,329],[329,330],[330,331],[332,333],[333,334],
+                [334,335],[335,336],[336,337],[337,338],[338,339],[339,340],[340,341],[342,343],[343,344],
+                [344,345],[345,346],[346,347],[347,348],[348,349],[349,350],[350,351],[352,353],[353,354],
+                [354,355],[355,356],[356,357],[357,358],[358,359],[359,360],[360,361],[362,363],[363,364],
+                [364,365],[365,366],[366,367],[367,368],[368,369],[369,370],[370,371],[372,373],[373,374],
+                [374,375],[375,376],[376,377],[377,378],[378,379],[379,380],[380,381],[382,383],[383,384],
+                [384,385],[385,386],[386,387],[387,388],[388,389],[389,390],[390,391],[392,393],[393,394],
+                [394,395],[395,396],[396,397],[397,398],[398,399],[399,400],[400,401],[402,403],[403,404],
+                [404,405],[405,406],[406,407],[407,408],[408,409],[409,410],[410,411],[412,413],[413,414],
+                [414,415],[415,416],[416,417],[417,418],[418,419],[419,420],[420,421],[422,423],[423,424],
+                [424,425],[425,426],[426,427],[427,428],[428,429],[429,430],[430,431]
+            ];
+            
+            ctx.beginPath();
+            ctx.strokeStyle = "#66ff66";
+            ctx.lineWidth = 1.2;
+            for (let conn of connections) {
+                const p1 = landmarks[conn[0]];
+                const p2 = landmarks[conn[1]];
+                if (p1 && p2) {
+                    ctx.moveTo(p1.x * width, p1.y * height);
+                    ctx.lineTo(p2.x * width, p2.y * height);
+                }
             }
+            ctx.stroke();
             
-            // 3) draw key facial landmarks (tiny dots for precision feedback)
-            for(let i = 0; i < landmarks.length; i++) {
-                const x = landmarks[i].x * dimensions.width;
-                const y = landmarks[i].y * dimensions.height;
-                if(i % 15 === 0) {  // draw subset for performance but still feels aimbot detailed
+            // additional: draw key landmarks (nose, eyes) in red for aim confirmation
+            const highlightIndices = [1, 33, 263, 152, 168];
+            for (let idx of highlightIndices) {
+                if (landmarks[idx]) {
                     ctx.beginPath();
-                    ctx.arc(x, y, 1.2, 0, 2 * Math.PI);
-                    ctx.fillStyle = "#66ff66";
+                    ctx.arc(landmarks[idx].x * width, landmarks[idx].y * height, 2.5, 0, Math.PI*2);
+                    ctx.fillStyle = "#ff5555";
                     ctx.fill();
                 }
             }
-            
-            // additional "laser lock" effect: line from center to top of head (landmark 10)
-            if(landmarks[10] && center) {
-                const topX = landmarks[10].x * dimensions.width;
-                const topY = landmarks[10].y * dimensions.height;
-                ctx.beginPath();
-                ctx.moveTo(center.x, center.y);
-                ctx.lineTo(topX, topY);
-                ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
-                ctx.lineWidth = 1.8;
-                ctx.stroke();
-            }
-            ctx.restore();
         }
         
-        // FPS counter
-        function updateFPS(now) {
+        // ---------- FPS counter ----------
+        function updateFPS() {
             frameCount++;
-            if(now - lastTimestamp >= 1000) {
+            const now = performance.now();
+            if (now - lastFpsTime >= 1000) {
                 fps = frameCount;
                 frameCount = 0;
-                lastTimestamp = now;
-                const fpsElem = document.querySelector('.fps');
-                if(fpsElem) fpsElem.innerText = `⚡ ${fps} FPS`;
+                lastFpsTime = now;
+                const fpsDiv = document.querySelector('.fps');
+                if (fpsDiv) fpsDiv.innerText = `${fps} FPS`;
             }
-            requestAnimationFrame((t) => updateFPS(t));
+            requestAnimationFrame(updateFPS);
         }
         
-        // resize canvas to match video feed
-        function resizeCanvas() {
-            if(videoElement.videoWidth && videoElement.videoHeight) {
-                canvasWidth = videoElement.videoWidth;
-                canvasHeight = videoElement.videoHeight;
-                canvasElement.width = canvasWidth;
-                canvasElement.height = canvasHeight;
-                canvasElement.style.width = `${canvasWidth}px`;
-                canvasElement.style.height = `${canvasHeight}px`;
+        // ---------- resize canvas to match video ----------
+        function resizeCanvasToVideo() {
+            if (video.videoWidth && video.videoHeight) {
+                vidWidth = video.videoWidth;
+                vidHeight = video.videoHeight;
+                canvas.width = vidWidth;
+                canvas.height = vidHeight;
+                canvas.style.width = `${vidWidth}px`;
+                canvas.style.height = `${vidHeight}px`;
                 const container = document.getElementById('output');
                 container.style.width = '100%';
-                container.style.maxWidth = `${canvasWidth}px`;
-                container.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+                container.style.maxWidth = `${vidWidth}px`;
+                container.style.aspectRatio = `${vidWidth} / ${vidHeight}`;
             }
         }
         
-        // MediaPipe results callback
-        function onFaceMeshResults(results) {
-            if(!canvasElement || !ctx) return;
-            if(canvasWidth === 0 || canvasHeight === 0) {
-                resizeCanvas();
+        // ---------- MediaPipe callback ----------
+        function onResults(results) {
+            if (!canvas || !ctx) return;
+            if (vidWidth === 0 || vidHeight === 0) {
+                resizeCanvasToVideo();
                 return;
             }
-            if(results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                // take the most dominant face (first)
-                const landmarks = results.multiFaceLandmarks[0];
-                const dimensions = { width: canvasWidth, height: canvasHeight };
-                drawAimbotOverlay(landmarks, dimensions);
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const faceLandmarks = results.multiFaceLandmarks[0]; // lock on primary face
+                drawLockOverlay(faceLandmarks, vidWidth, vidHeight);
             } else {
-                // no face: clear canvas and show hint
-                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                // no face -> clear and show message
+                ctx.clearRect(0, 0, vidWidth, vidHeight);
                 ctx.font = "bold 18px monospace";
-                ctx.fillStyle = "#ff6666";
-                ctx.shadowBlur = 0;
-                ctx.fillText("⚠️ NO TARGET — FACE NOT DETECTED", canvasWidth/2 - 180, canvasHeight/2);
+                ctx.fillStyle = "#ff8888";
+                ctx.fillText("🔴 LOST LOCK — REPOSITION FACE", vidWidth/2 - 170, vidHeight/2);
             }
         }
         
-        // initialize face mesh with maximum detection accuracy
+        // ---------- init face mesh with insane accuracy settings ----------
         function initFaceMesh() {
             faceMesh = new FaceMesh({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-                }
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
             });
-            
-            // Settings for aimbot-level precision:
-            // maxNumFaces: 1 (dedicated lock)
-            // refineLandmarks: true -> adds iris landmarks, tighter tracking
-            // minDetectionConfidence: 0.5 -> faster response
-            // minTrackingConfidence: 0.5 -> sticky tracking
             faceMesh.setOptions({
                 maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
+                refineLandmarks: true,      // enables iris and more points
+                minDetectionConfidence: 0.65,
+                minTrackingConfidence: 0.7   // high tracking confidence = sticky lock
             });
-            
-            faceMesh.onResults(onFaceMeshResults);
+            faceMesh.onResults(onResults);
         }
         
-        // start camera
+        // ---------- start camera with highest resolution ----------
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } });
-                videoElement.srcObject = stream;
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 60 }
+                    }
+                });
+                video.srcObject = stream;
                 await new Promise((resolve) => {
-                    videoElement.onloadedmetadata = () => {
-                        videoElement.play();
+                    video.onloadedmetadata = () => {
+                        video.play();
                         resolve();
                     };
                 });
-                resizeCanvas();
-                // initialize camera utils
-                camera = new Camera(videoElement, {
+                resizeCanvasToVideo();
+                camera = new Camera(video, {
                     onFrame: async () => {
-                        if(faceMesh) {
-                            await faceMesh.send({ image: videoElement });
-                        }
+                        if (faceMesh) await faceMesh.send({ image: video });
                     },
-                    width: 1280,
-                    height: 720
+                    width: 1920,
+                    height: 1080
                 });
                 camera.start();
-            } catch(err) {
-                console.error("Camera error", err);
-                ctx.font = "20px monospace";
+            } catch (err) {
+                console.error(err);
                 ctx.fillStyle = "red";
-                ctx.fillText("❌ Camera access denied or error", 50, 100);
+                ctx.font = "18px monospace";
+                ctx.fillText("CAMERA ERROR - PERMISSION DENIED", 50, 100);
             }
         }
         
-        // make canvas responsive on resize
-        window.addEventListener('resize', () => {
-            if(videoElement.videoWidth) {
-                canvasWidth = videoElement.videoWidth;
-                canvasHeight = videoElement.videoHeight;
-                canvasElement.width = canvasWidth;
-                canvasElement.height = canvasHeight;
-            }
-        });
-        
-        // kickstart
+        // run
         initFaceMesh();
         startCamera();
-        lastTimestamp = performance.now();
-        requestAnimationFrame((t) => updateFPS(t));
+        updateFPS();
         
-        // extra smoothness: video frames may cause slight lag, but mediapipe handles.
-        // forced aimbot level "stuck" due to immediate overlay update per frame.
+        // window resize handling
+        window.addEventListener('resize', () => {
+            if (video.videoWidth) resizeCanvasToVideo();
+        });
     })();
 </script>
 </body>
