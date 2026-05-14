@@ -3,128 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mog FYI – Exact Face Score Replica</title>
+    <title>Mog FYI – Fixed Face Score</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0a0c12;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            max-width: 700px;
-            width: 100%;
-            background: #101219;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
-        }
-        .video-wrapper {
-            position: relative;
-            aspect-ratio: 4/5;
-            background: black;
-        }
-        video, canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        canvas {
-            pointer-events: none;
-        }
-        .panel {
-            padding: 20px;
-            background: rgba(12,14,20,0.97);
-        }
-        .score-main {
-            font-size: 64px;
-            font-weight: 800;
-            color: #4ade80;
-            font-family: monospace;
-            letter-spacing: 2px;
-        }
-        .signal-bar {
-            height: 5px;
-            background: #1a1c24;
-            border-radius: 5px;
-            margin: 12px 0;
-            overflow: hidden;
-        }
-        .signal-fill {
-            height: 100%;
-            width: 0%;
-            transition: width 0.15s ease;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0c12; font-family: monospace; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { max-width: 700px; width: 100%; background: #101219; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 35px rgba(0,0,0,0.5); }
+        .video-wrapper { position: relative; aspect-ratio: 4/5; background: black; }
+        video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        canvas { pointer-events: none; }
+        .panel { padding: 20px; background: rgba(12,14,20,0.97); }
+        .score-main { font-size: 64px; font-weight: 800; color: #4ade80; font-family: monospace; letter-spacing: 2px; }
+        .signal-bar { height: 5px; background: #1a1c24; border-radius: 5px; margin: 12px 0; overflow: hidden; }
+        .signal-fill { height: 100%; width: 0%; transition: width 0.15s ease; }
         .signal-fill.good { background: #4ade80; }
         .signal-fill.bad { background: #f87171; }
-        .signal-label {
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            background: #1e2029;
-            color: #aaa;
-        }
-        .diagnosis-box {
-            margin: 20px 0;
-            padding: 15px;
-            background: #1a1c24;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-        .diagnosis-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #2a2c34;
-        }
+        .signal-label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; display: inline-block; padding: 4px 8px; border-radius: 4px; background: #1e2029; color: #aaa; }
+        .diagnosis-box { margin: 20px 0; padding: 15px; background: #1a1c24; border-radius: 8px; font-size: 12px; }
+        .diagnosis-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a2c34; }
         .diagnosis-item:last-child { border: none; }
         .good { color: #4ade80; }
         .medium { color: #fbbf24; }
         .bad { color: #f87171; }
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .metric-card {
-            background: #1a1c24;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 11px;
-        }
-        .metric-name {
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .metric-value {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 4px;
-        }
-        .note {
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            margin-top: 15px;
-        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-top: 15px; }
+        .metric-card { background: #1a1c24; padding: 8px; border-radius: 6px; font-size: 11px; }
+        .metric-name { color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-value { font-size: 20px; font-weight: bold; margin-top: 4px; }
+        .note { font-size: 10px; color: #666; text-align: center; margin-top: 15px; }
+        .error-msg { color: #f87171; text-align: center; padding: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -135,38 +40,22 @@
     </div>
     <div class="panel">
         <div class="score-main" id="score">--</div>
-
-        <div class="signal-bar">
-            <div class="signal-fill good" id="strongBar" style="width:0%"></div>
-        </div>
+        <div class="signal-bar"><div class="signal-fill good" id="strongBar" style="width:0%"></div></div>
         <div id="strongLabel" class="signal-label">—</div>
-
-        <div class="signal-bar">
-            <div class="signal-fill bad" id="weakBar" style="width:0%"></div>
-        </div>
+        <div class="signal-bar"><div class="signal-fill bad" id="weakBar" style="width:0%"></div></div>
         <div id="weakLabel" class="signal-label">—</div>
-
         <div class="diagnosis-box" id="diagnosis"></div>
         <div class="metrics-grid" id="metrics"></div>
         <div class="note">Same weights & falloff as original mog.fyi</div>
+        <div id="errorMsg" class="error-msg"></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js"></script>
 <script>
-    // ---------- Exact weights from original ----------
-    const WEIGHTS = {
-        symmetry: 0.24,
-        harmony: 0.18,
-        jaw: 0.14,
-        midface: 0.14,
-        canthalTilt: 0.12,
-        cheek: 0.10,
-        eyeShape: 0.08
-    };
+    // ---------- Exact weights ----------
+    const WEIGHTS = { symmetry: 0.24, harmony: 0.18, jaw: 0.14, midface: 0.14, canthalTilt: 0.12, cheek: 0.10, eyeShape: 0.08 };
 
-    // ---------- "Good band" falloff function (smooth from 0 to 1) ----------
-    // Full credit between low and high, then linear falloff to 0 outside [min,max]
     function goodBand(value, minIdeal, maxIdeal, minAllowed = 0.2, maxAllowed = 0.9) {
         if (value <= minAllowed) return 0;
         if (value >= maxAllowed) return 0;
@@ -175,37 +64,26 @@
         return (maxAllowed - value) / (maxAllowed - maxIdeal);
     }
 
-    // ---------- Geometric helpers ----------
     function distance(p1, p2) {
-        const dx = p1.x - p2.x;
-        const dy = p1.y - p2.y;
-        return Math.hypot(dx, dy);
+        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
     }
 
     function angle(p1, p2) {
         return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
     }
 
-    // ---------- Face metrics from landmarks (MediaPipe 478 points) ----------
     function computeMetrics(landmarks, imgW, imgH) {
-        // Helper to get landmark by index
         const lm = (idx) => landmarks[idx];
-
-        // ---- Symmetry (24%) : compare left/right eye & brow positions ----
+        // Symmetry
         const leftEye = lm(33), rightEye = lm(263);
         const leftBrow = lm(55), rightBrow = lm(285);
-        const eyeDiff = Math.abs(leftEye.x - rightEye.x);
-        const browDiff = Math.abs(leftBrow.y - rightBrow.y);
-        const rawSym = 1 - ((eyeDiff + browDiff) / 2);
+        const rawSym = 1 - ((Math.abs(leftEye.x - rightEye.x) + Math.abs(leftBrow.y - rightBrow.y)) / 2);
         const symmetryScore = goodBand(rawSym, 0.72, 0.88, 0.5, 0.98);
-
-        // ---- Jaw (14%) : width between jaw corners (landmarks 132, 361) ----
+        // Jaw width
         const jawL = lm(132), jawR = lm(361);
-        const jawWidth = distance(jawL, jawR);
-        const normJawWidth = jawWidth / imgW;
-        const jawScore = goodBand(normJawWidth, 0.22, 0.32, 0.12, 0.45);
-
-        // ---- Midface (14%) : ratio of nose-to-mouth vs total face height ----
+        const jawWidth = distance(jawL, jawR) / imgW;
+        const jawScore = goodBand(jawWidth, 0.22, 0.32, 0.12, 0.45);
+        // Midface ratio
         const noseTip = lm(1), upperLip = lm(13);
         const eyeCenter = { x: (lm(33).x + lm(263).x)/2, y: (lm(33).y + lm(263).y)/2 };
         const chin = lm(152);
@@ -213,75 +91,48 @@
         const totalLen = distance(eyeCenter, chin);
         const rawMid = midfaceLen / (totalLen + 0.001);
         const midfaceScore = goodBand(rawMid, 0.32, 0.42, 0.18, 0.58);
-
-        // ---- Canthal Tilt (12%) : angle of outer vs inner eye ----
+        // Canthal tilt
         const leftInner = lm(133), leftOuter = lm(33);
         const rightInner = lm(362), rightOuter = lm(263);
         const leftTilt = angle(leftInner, leftOuter);
         const rightTilt = angle(rightInner, rightOuter);
         const avgTilt = (leftTilt + rightTilt) / 2;
-        // ideal: -1° to 3° (negative = hunter, positive = prey) – mog prefers negative
         const tiltScore = goodBand(avgTilt, -3, 2, -12, 12);
         const canthalScore = Math.min(1, Math.max(0, tiltScore));
-
-        // ---- Cheek (10%) : zygomatic projection (landmark 235 distance from nose) ----
+        // Cheek projection
         const cheek = lm(235), nose = lm(1);
         const cheekProj = Math.abs(cheek.x - nose.x) / imgW;
         const cheekScore = goodBand(cheekProj, 0.09, 0.16, 0.03, 0.28);
-
-        // ---- Eye Shape (8%) : openness (vertical distance between upper/lower eyelid) ----
+        // Eye openness
         const leftUpper = lm(159), leftLower = lm(23);
         const rightUpper = lm(386), rightLower = lm(253);
         const leftOpen = distance(leftUpper, leftLower);
         const rightOpen = distance(rightUpper, rightLower);
         const avgOpen = (leftOpen + rightOpen) / 2 / imgH;
         const eyeScore = goodBand(avgOpen, 0.022, 0.038, 0.008, 0.065);
-
-        // ---- Harmony (18%) : composite of jaw, midface, cheek, eye spacing ----
-        // Use multiple cues: jaw width, midface ratio, cheek projection, eye-to-mouth distance
+        // Harmony composite
         const eyeToMouth = distance(eyeCenter, upperLip) / imgH;
         const harmonyRaw = (jawScore + midfaceScore + cheekScore + (1 - Math.abs(eyeToMouth - 0.28))) / 4;
         const harmonyScore = goodBand(harmonyRaw, 0.65, 0.85, 0.25, 0.98);
-
-        // Final aggregated score (0-1) before framing guard
-        let Z = (symmetryScore * WEIGHTS.symmetry) +
-                (harmonyScore * WEIGHTS.harmony) +
-                (jawScore * WEIGHTS.jaw) +
-                (midfaceScore * WEIGHTS.midface) +
-                (canthalScore * WEIGHTS.canthalTilt) +
-                (cheekScore * WEIGHTS.cheek) +
-                (eyeScore * WEIGHTS.eyeShape);
-
+        let Z = (symmetryScore * WEIGHTS.symmetry) + (harmonyScore * WEIGHTS.harmony) + (jawScore * WEIGHTS.jaw) +
+                (midfaceScore * WEIGHTS.midface) + (canthalScore * WEIGHTS.canthalTilt) +
+                (cheekScore * WEIGHTS.cheek) + (eyeScore * WEIGHTS.eyeShape);
         Z = Math.min(0.99, Math.max(0.01, Z));
-
-        return {
-            Z,
-            symmetry: symmetryScore,
-            harmony: harmonyScore,
-            jaw: jawScore,
-            midface: midfaceScore,
-            canthal: canthalScore,
-            cheek: cheekScore,
-            eye: eyeScore,
-            raw: { symmetryRaw: rawSym, canthalAngle: avgTilt, jawWidth: normJawWidth, midfaceRatio: rawMid }
-        };
+        return { Z, symmetry: symmetryScore, harmony: harmonyScore, jaw: jawScore, midface: midfaceScore, canthal: canthalScore, cheek: cheekScore, eye: eyeScore, raw: { symmetryRaw: rawSym, canthalAngle: avgTilt, jawWidth: jawWidth, midfaceRatio: rawMid } };
     }
 
-    // ---------- Framing guard (pose quality) ----------
-    // 3 factors: centering, face size, roll (head tilt)
     function framingGuard(landmarks, imgW, imgH) {
-        const faceCenter = { x: landmarks[1].x, y: landmarks[1].y };
-        const imageCenter = { x: 0.5, y: 0.5 };
-        const centering = 1 - (Math.hypot(faceCenter.x - imageCenter.x, faceCenter.y - imageCenter.y) / 0.5);
+        const faceCenter = landmarks[1];
+        const centering = 1 - (Math.hypot(faceCenter.x - 0.5, faceCenter.y - 0.5) / 0.5);
         const leftEye = landmarks[33], rightEye = landmarks[263];
         const faceWidth = Math.hypot(leftEye.x - rightEye.x, leftEye.y - rightEye.y);
-        const faceSize = Math.min(1, faceWidth / 0.3); // ideal width 0.3 of image
+        const faceSize = Math.min(1, faceWidth / 0.3);
         const roll = Math.abs(angle(leftEye, rightEye));
-        let quality = (centering * 0.4) + (Math.min(1, faceSize) * 0.4) + (1 - Math.min(1, roll / 20) * 0.2);
+        let quality = (centering * 0.4) + (faceSize * 0.4) + (1 - Math.min(1, roll / 20) * 0.2);
         return Math.min(1, Math.max(0.2, quality));
     }
 
-    // ---------- Main app ----------
+    // DOM elements
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -292,132 +143,148 @@
     const weakLabel = document.getElementById('weakLabel');
     const diagnosisDiv = document.getElementById('diagnosis');
     const metricsDiv = document.getElementById('metrics');
+    const errorMsgDiv = document.getElementById('errorMsg');
 
     let faceLandmarker = null;
-    let lastScore = 50;
-    let frameCount = 0;
-    let animationId = null;
+    let detectionRequestId = null;
+    let isModelReady = false;
+    let isVideoReady = false;
 
     async function initFaceLandmarker() {
-        const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-        );
-        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-            baseOptions: {
-                modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-                delegate: "GPU"
-            },
-            outputFaceBlendshapes: false,
-            numFaces: 1,
-            runningMode: "VIDEO"
-        });
-        console.log("FaceLandmarker ready");
-        detectLoop();
+        try {
+            errorMsgDiv.innerText = "Loading face model...";
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+            );
+            faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                    delegate: "GPU"
+                },
+                outputFaceBlendshapes: false,
+                numFaces: 1,
+                runningMode: "VIDEO"
+            });
+            isModelReady = true;
+            errorMsgDiv.innerText = "";
+            console.log("FaceLandmarker ready");
+            startDetection();
+        } catch (err) {
+            errorMsgDiv.innerText = "Model load failed: " + err.message;
+            console.error(err);
+        }
     }
 
-    function detectLoop() {
-        if (!faceLandmarker || video.readyState < 2) {
-            requestAnimationFrame(detectLoop);
-            return;
-        }
-        const startTimeMs = performance.now();
-        const results = faceLandmarker.detectForVideo(video, startTimeMs);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        if (results.faceLandmarks && results.faceLandmarks.length > 0) {
-            const landmarks = results.faceLandmarks[0];
-            const imgW = canvas.width, imgH = canvas.height;
-            
-            const metrics = computeMetrics(landmarks, imgW, imgH);
-            const quality = framingGuard(landmarks, imgW, imgH);
-            let finalScore = metrics.Z * quality * 100;
-            finalScore = Math.min(99, Math.max(20, finalScore));
-            lastScore = Math.floor(finalScore);
-            
-            scoreEl.innerText = `${lastScore}/100`;
-            
-            // Determine strong & weak signals based on highest/lowest channel scores
-            const channelScores = [
-                { name: "Strong Jawline", score: metrics.jaw, type: "good" },
-                { name: "Hunter Eyes", score: metrics.canthal, type: "good" },
-                { name: "High Symmetry", score: metrics.symmetry, type: "good" },
-                { name: "Defined Cheeks", score: metrics.cheek, type: "good" },
-                { name: "Almond Eyes", score: metrics.eye, type: "good" },
-                { name: "Balanced Midface", score: metrics.midface, type: "good" },
-                { name: "Weak Jaw", score: 1 - metrics.jaw, type: "bad" },
-                { name: "Positive Canthal Tilt", score: 1 - metrics.canthal, type: "bad" },
-                { name: "Asymmetry", score: 1 - metrics.symmetry, type: "bad" },
-                { name: "Flat Cheeks", score: 1 - metrics.cheek, type: "bad" },
-                { name: "Round Eyes", score: 1 - metrics.eye, type: "bad" },
-                { name: "Elongated Midface", score: 1 - metrics.midface, type: "bad" }
-            ];
-            channelScores.sort((a,b) => b.score - a.score);
-            const strong = channelScores.find(c => c.type === "good" && c.score > 0.65) || channelScores[0];
-            const weak = channelScores.find(c => c.type === "bad" && c.score > 0.55) || channelScores[channelScores.length-1];
-            strongLabel.innerText = strong.name;
-            weakLabel.innerText = weak.name;
-            strongBar.style.width = `${strong.score * 100}%`;
-            weakBar.style.width = `${weak.score * 100}%`;
-            
-            // Diagnosis lines (recessed maxilla, jaw rotation, etc)
-            const recessedScore = metrics.midface > 0.6 ? "Mild Recessed Maxilla" : (metrics.midface > 0.45 ? "Normal Maxilla" : "Severe Recessed Maxilla");
-            const recessedClass = metrics.midface > 0.6 ? "bad" : (metrics.midface > 0.45 ? "medium" : "bad");
-            const jawRotation = metrics.jaw > 0.7 ? "Upswung Jaw" : (metrics.jaw < 0.4 ? "Downgrown Jaw" : "Normal Rotation");
-            const jawClass = metrics.jaw > 0.7 ? "good" : (metrics.jaw < 0.4 ? "bad" : "medium");
-            const tiltStatus = metrics.canthal > 0.6 ? "Negative Canthal Tilt (Hunter)" : (metrics.canthal < 0.3 ? "Positive Tilt (Prey)" : "Neutral Tilt");
-            const tiltClass = metrics.canthal > 0.6 ? "good" : (metrics.canthal < 0.3 ? "bad" : "medium");
-            
-            diagnosisDiv.innerHTML = `
-                <div class="diagnosis-item"><span>🦴 Maxilla:</span><span class="${recessedClass}">${recessedScore}</span></div>
-                <div class="diagnosis-item"><span>🦷 Jaw Rotation:</span><span class="${jawClass}">${jawRotation}</span></div>
-                <div class="diagnosis-item"><span>👁️ Canthal Tilt:</span><span class="${tiltClass}">${tiltStatus}</span></div>
-                <div class="diagnosis-item"><span>⚡ Jaw Definition:</span><span class="${metrics.jaw>0.6?'good':'medium'}">${Math.round(metrics.jaw*100)}%</span></div>
-                <div class="diagnosis-item"><span>📏 Midface Ratio:</span><span class="${metrics.midface>0.5?'medium':'bad'}">${metrics.raw.midfaceRatio.toFixed(2)}</span></div>
-            `;
-            
-            metricsDiv.innerHTML = `
-                <div class="metric-card"><div class="metric-name">SYMMETRY</div><div class="metric-value ${metrics.symmetry>0.6?'good':'medium'}">${Math.round(metrics.symmetry*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">HARMONY</div><div class="metric-value ${metrics.harmony>0.6?'good':'medium'}">${Math.round(metrics.harmony*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">JAW</div><div class="metric-value ${metrics.jaw>0.6?'good':'medium'}">${Math.round(metrics.jaw*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">MIDFACE</div><div class="metric-value ${metrics.midface>0.5?'medium':'bad'}">${Math.round(metrics.midface*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">CANTHAL TILT</div><div class="metric-value ${metrics.canthal>0.6?'good':'bad'}">${Math.round(metrics.canthal*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">CHEEK</div><div class="metric-value ${metrics.cheek>0.6?'good':'medium'}">${Math.round(metrics.cheek*100)}%</div></div>
-                <div class="metric-card"><div class="metric-name">EYE SHAPE</div><div class="metric-value ${metrics.eye>0.6?'good':'medium'}">${Math.round(metrics.eye*100)}%</div></div>
-            `;
-            
-            // Draw landmarks
-            for (let pt of landmarks) {
-                ctx.fillStyle = '#4ade80';
-                ctx.beginPath();
-                ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 2, 0, 2*Math.PI);
-                ctx.fill();
+    function startDetection() {
+        if (detectionRequestId) cancelAnimationFrame(detectionRequestId);
+        function detect() {
+            if (!isModelReady || !isVideoReady || video.readyState < 2) {
+                detectionRequestId = requestAnimationFrame(detect);
+                return;
             }
-        } else {
-            scoreEl.innerText = "--";
-            strongLabel.innerText = "No face detected";
-            weakLabel.innerText = "Center your face";
+            // Ensure canvas matches video size
+            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+            const startTimeMs = performance.now();
+            let results;
+            try {
+                results = faceLandmarker.detectForVideo(video, startTimeMs);
+            } catch (e) {
+                console.warn(e);
+                detectionRequestId = requestAnimationFrame(detect);
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                const landmarks = results.faceLandmarks[0];
+                const metrics = computeMetrics(landmarks, canvas.width, canvas.height);
+                const quality = framingGuard(landmarks, canvas.width, canvas.height);
+                let finalScore = metrics.Z * quality * 100;
+                finalScore = Math.min(99, Math.max(20, finalScore));
+                scoreEl.innerText = `${Math.floor(finalScore)}/100`;
+                // Strong/weak signals
+                const channels = [
+                    { name: "Strong Jawline", score: metrics.jaw, type: "good" },
+                    { name: "Hunter Eyes", score: metrics.canthal, type: "good" },
+                    { name: "High Symmetry", score: metrics.symmetry, type: "good" },
+                    { name: "Defined Cheeks", score: metrics.cheek, type: "good" },
+                    { name: "Almond Eyes", score: metrics.eye, type: "good" },
+                    { name: "Balanced Midface", score: metrics.midface, type: "good" },
+                    { name: "Weak Jaw", score: 1 - metrics.jaw, type: "bad" },
+                    { name: "Positive Canthal Tilt", score: 1 - metrics.canthal, type: "bad" },
+                    { name: "Asymmetry", score: 1 - metrics.symmetry, type: "bad" },
+                    { name: "Flat Cheeks", score: 1 - metrics.cheek, type: "bad" },
+                    { name: "Round Eyes", score: 1 - metrics.eye, type: "bad" },
+                    { name: "Elongated Midface", score: 1 - metrics.midface, type: "bad" }
+                ];
+                channels.sort((a,b) => b.score - a.score);
+                const strong = channels.find(c => c.type === "good" && c.score > 0.6) || channels[0];
+                const weak = channels.find(c => c.type === "bad" && c.score > 0.55) || channels[channels.length-1];
+                strongLabel.innerText = strong.name;
+                weakLabel.innerText = weak.name;
+                strongBar.style.width = `${strong.score * 100}%`;
+                weakBar.style.width = `${weak.score * 100}%`;
+                // Diagnosis
+                const recessedStatus = metrics.midface > 0.6 ? "Mild Recessed Maxilla" : (metrics.midface > 0.45 ? "Normal" : "Severe Recessed Maxilla");
+                const recessedClass = metrics.midface > 0.6 ? "bad" : (metrics.midface > 0.45 ? "medium" : "bad");
+                const jawRotation = metrics.jaw > 0.7 ? "Upswung" : (metrics.jaw < 0.4 ? "Downgrown" : "Normal");
+                const jawClass = metrics.jaw > 0.7 ? "good" : (metrics.jaw < 0.4 ? "bad" : "medium");
+                const tiltStatus = metrics.canthal > 0.6 ? "Hunter (Negative)" : (metrics.canthal < 0.3 ? "Prey (Positive)" : "Neutral");
+                const tiltClass = metrics.canthal > 0.6 ? "good" : (metrics.canthal < 0.3 ? "bad" : "medium");
+                diagnosisDiv.innerHTML = `
+                    <div class="diagnosis-item"><span>🦴 Maxilla:</span><span class="${recessedClass}">${recessedStatus}</span></div>
+                    <div class="diagnosis-item"><span>🦷 Jaw Rotation:</span><span class="${jawClass}">${jawRotation}</span></div>
+                    <div class="diagnosis-item"><span>👁️ Canthal Tilt:</span><span class="${tiltClass}">${tiltStatus}</span></div>
+                    <div class="diagnosis-item"><span>⚡ Jaw Definition:</span><span class="${metrics.jaw>0.6?'good':'medium'}">${Math.round(metrics.jaw*100)}%</span></div>
+                    <div class="diagnosis-item"><span>📏 Midface Ratio:</span><span class="${metrics.midface>0.5?'medium':'bad'}">${metrics.raw.midfaceRatio.toFixed(2)}</span></div>
+                `;
+                metricsDiv.innerHTML = `
+                    <div class="metric-card"><div class="metric-name">SYMMETRY</div><div class="metric-value ${metrics.symmetry>0.6?'good':'medium'}">${Math.round(metrics.symmetry*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">HARMONY</div><div class="metric-value ${metrics.harmony>0.6?'good':'medium'}">${Math.round(metrics.harmony*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">JAW</div><div class="metric-value ${metrics.jaw>0.6?'good':'medium'}">${Math.round(metrics.jaw*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">MIDFACE</div><div class="metric-value ${metrics.midface>0.5?'medium':'bad'}">${Math.round(metrics.midface*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">CANTHAL TILT</div><div class="metric-value ${metrics.canthal>0.6?'good':'bad'}">${Math.round(metrics.canthal*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">CHEEK</div><div class="metric-value ${metrics.cheek>0.6?'good':'medium'}">${Math.round(metrics.cheek*100)}%</div></div>
+                    <div class="metric-card"><div class="metric-name">EYE SHAPE</div><div class="metric-value ${metrics.eye>0.6?'good':'medium'}">${Math.round(metrics.eye*100)}%</div></div>
+                `;
+                // Draw landmarks
+                for (let pt of landmarks) {
+                    ctx.fillStyle = '#4ade80';
+                    ctx.beginPath();
+                    ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 2, 0, 2*Math.PI);
+                    ctx.fill();
+                }
+            } else {
+                scoreEl.innerText = "--";
+                strongLabel.innerText = "No face";
+                weakLabel.innerText = "Center face";
+                diagnosisDiv.innerHTML = '<div class="diagnosis-item"><span>No face detected</span><span>😐</span></div>';
+                metricsDiv.innerHTML = '';
+            }
+            detectionRequestId = requestAnimationFrame(detect);
         }
-        
-        requestAnimationFrame(detectLoop);
+        detect();
     }
 
-    // Start camera and init
+    // Start camera
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
             video.srcObject = stream;
-            video.play();
-            video.addEventListener('loadedmetadata', () => {
+            video.onloadedmetadata = () => {
+                video.play();
+                isVideoReady = true;
+                // Set canvas size
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 initFaceLandmarker();
-            });
+            };
         })
         .catch(err => {
-            console.error("Camera error:", err);
-            scoreEl.innerText = "ERR";
-            strongLabel.innerText = "Camera blocked";
-            weakLabel.innerText = "Allow permissions";
+            errorMsgDiv.innerText = "Camera access denied or error: " + err.message;
+            console.error(err);
         });
 </script>
 </body>
